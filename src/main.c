@@ -1,6 +1,6 @@
 #include "../include/common.h"
 
 
-int main() {
-
+void mainCFunc() {
+    g_AmmoCount = 50;
 }
