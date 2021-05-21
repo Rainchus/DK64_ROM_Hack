@@ -10,14 +10,21 @@ extern void printKroolTimer (char* destination, char* source, ...); //0x800031E0
 extern int spawnActor (int actorID, int actorBehavior); //0x80677FA8
 extern int dk_strlen (char* string); //0x80002F18
 extern void SpawnTextOverlay (int z, int x, int y, char* string); //0x8069D0F8 a0 = z?, a1 = x (s16), a2 = y (s16), a3 = textpointer
-extern void setCurrentActorOpacity (char opacity); //custom function
-extern void Watch_ColourWatch (int color); //custom function
+extern int* setActorOpacity (char opacity, int* actor); //custom function, returns last object created pointer
+extern int* SpawnTextOverlayWrapper(int z, int x, int y, char* string); //custom function, returns created text object
+extern void deleteActor (int* actor); //0x806785D4
+extern void dk_sprintf(char* destination, char* source, ...);
+extern void setInitialPrintingAddr(); //custom
 //extern void printTextCutscene (int style, char* string); //0x806FBD5C
 
 
 //data
+extern int* latestObject; //0x807FBB44
 extern short g_AmmoCount; //0x807FCC40
 extern short p1PressedButtons; //0x807ECD48
 extern short p1HeldButtons; //0x807ECD58
-extern int* tempPtr; //0x807FFFF8
-extern char initFlag; //0x807FFFFF
+extern int* textObjectInstancesPrevious[24]; //0x807FFF00
+extern int* textObjectInstancesCurrent[24]; //0x807FFF80
+extern int* graphicalOverlaySpace[32][3]; //0x807FFD80
+extern int menuFlag; //0x807FFD70
+extern int* printStartAddr; //custom
