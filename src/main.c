@@ -12,24 +12,33 @@
 #define validRamReadStart 0x80000000
 #define validRamReadEnd 0x807FFF90
 
+#define menuStateChangeStartAddr 00000000
+#define menuStateSelectAddr 00000001 //for selecting a ram address to modify in the table
+#define menuStatePokeAddr 00000002 //for changing a ram value
+
 char testString[] = "TEST";
 char testString2[] = "%s 10";
 char testString3[] = "TEST AGAIN";
-char formatter08[] = "%08X %08X %08X %08X";
+char formatter08[] = "%02X: %08X %08X %08X %08X";
 char formatter04[] = "%04X %04X %04X %04X %04X %04X %04X %04X ";
 char formatter02[] = "%02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X ";
 char formatterHeader[] = "ADDR: %08X";
 
-char line0[0x10];
-char line1[0x10];
-char line2[0x10];
-char line3[0x10];
-char line4[0x10];
-char line5[0x10];
-char line6[0x10];
-char line7[0x10];
-char line8[0x10];
-char line9[0x10];
+char header[40];
+char line1[40];
+char line2[40];
+char line3[40];
+char line4[40];
+char line5[40];
+char line6[40];
+char line7[40];
+char line8[40];
+char line9[40];
+
+char* lines[] = {header, line1, line2, line3, line4, line5, line6, line7, line8, line9};
+
+char tempHeaderSpace[0x20];
+char tempSpace[40];
 
 void setFlags() {
     setFlag(0x17A, 1, 0);
@@ -51,56 +60,12 @@ void setFlags() {
     setFlag(0x163, 0x01, 0);
 }
 
-void clearCurrentTextActors(void) {
-    for (int i = 0; i < sizeof(textObjectInstancesCurrent) / sizeof(int*); i++) {
-        textObjectInstancesCurrent[i] = 0;
-    }
-}
-
-void clearPreviousTextActors(void) {
-    for (int i = 0; i < sizeof(textObjectInstancesPrevious) / sizeof(int*); i++) {
-        textObjectInstancesPrevious[i] = 0;
-    }
-}
-
-void copyCurrentTextActorsToPrevious(void) {
-    for (int i = 0; i < sizeof(textObjectInstancesPrevious) / sizeof(int*); i++) {
-        textObjectInstancesPrevious[i] = textObjectInstancesCurrent[i];
-    }
-}
-
-void destroyPreviousActors(void) {
-    for (int i = 0; i < sizeof(textObjectInstancesPrevious) / sizeof(int*); i++) {
-        if (textObjectInstancesPrevious[i] == 0 || textObjectInstancesPrevious[i] == (int*)0xFFFFFFFF) {
-            continue;
-        } else {
-            deleteActor(textObjectInstancesPrevious[i]);
-            textObjectInstancesPrevious[i] = 0;
-        }
-    }
-}
-
-int* SpawnTextOverlayWrapper(int z, int y, int x, char* string) {
+TextOverlay* SpawnTextOverlayWrapper(int z, int y, int x, char* string) {
     SpawnTextOverlay(z, y, x, string);
     return latestObject;
 }
 
-void createCurrentActors(int* address) { //a0 = address to print from
-    int x = 40;
-    int y = 25;
-    int z = 10;
-    int* objectInstance;
-    char tempSpace[40];
-
-    for (int i = 0; i < 8; i++) { //starts to cause lag pretty quickly...maybe only do 8
-        dk_sprintf(tempSpace, formatter08, *(address + i * 4), *(address + (i * 4 + 1)), *(address + (i * 4 + 2)), *(address + (i * 4 + 3)));
-        objectInstance = SpawnTextOverlayWrapper(z, y, x, tempSpace);
-        textObjectInstancesCurrent[i + 1] = objectInstance; //i + 1 because heading is in first slot by default
-        setActorOpacity(0xff, objectInstance);
-        x += 15;
-    }
-}
-
+/*
 void dk_sprintfWrapper (char* destination, int byteFormat, int* address) {
     if (byteFormat == ByteFormat4) {
         dk_sprintf(destination, formatter08, *(address), *(address + 1), *(address + 2), *(address + 3));
@@ -112,15 +77,53 @@ void dk_sprintfWrapper (char* destination, int byteFormat, int* address) {
         dk_sprintf(destination, formatter08, *(address), *(address + 1), *(address + 2), *(address + 3));
     }
 }
+*/
 
-void printHeader (int* address) { //a0 = address to print from
-    int* objectInstance;
-    char tempHeaderSpace[0x20];
+void initHeader (int* address) {
+    TextOverlay* textOverlay;
 
-    dk_sprintf(tempHeaderSpace, formatterHeader, address);
-    objectInstance = SpawnTextOverlayWrapper(10, 25, 20, tempHeaderSpace);
-    textObjectInstancesCurrent[0] = objectInstance;
-    setActorOpacity(0xff, objectInstance);
+    dk_sprintf(header, formatterHeader, address);
+    textOverlay = SpawnTextOverlayWrapper(10, 25, 20, header);
+    //textOverlay->string now holds a pointer to TempHeaderSpace
+    textOverlay->string = lines[0];
+    textObjectInstancesCurrent[0] = (int*)textOverlay;
+    setActorOpacity(0xff, textOverlay);
+}
+
+void updateHeader (int* address) {
+    dk_sprintf(header, formatterHeader, address);
+}
+
+void initTable (int* address) {
+    TextOverlay* textOverlay;
+    int x = 40;
+    int y = 15;
+    int z = 10;
+
+    for (int i = 0; i < 8; i++) {
+        dk_sprintf((lines[i+1]), formatter08, ( (int)(address + i * 4) & 0x000000FF), *(address + i * 4), *(address + (i * 4 + 1)), *(address + (i * 4 + 2)), *(address + (i * 4 + 3)));
+        textOverlay = SpawnTextOverlayWrapper(z, y, x, (lines[i+1]));
+        textOverlay->string = lines[i+1];
+        textObjectInstancesCurrent[i+1] = (int*)textOverlay;
+        setActorOpacity(0xff, textOverlay);
+        x += 15;
+    }
+}
+
+void updateTable (int* address) {
+    for (int i = 0; i < 8; i++) { //max of 8 lines
+        dk_sprintf((lines[i+1]), formatter08, ( (int)(address + i * 4) & 0x000000FF), *(address + i * 4), *(address + (i * 4 + 1)), *(address + (i * 4 + 2)), *(address + (i * 4 + 3))); 
+        //we do i+1 on lines because *lines[0] is header text
+    }
+}
+
+void destroyTextObjects(void) {
+    for (int i = 0; i < sizeof(textObjectInstancesCurrent) / sizeof(int*); i++) {
+        if (textObjectInstancesCurrent[i] != 0 && textObjectInstancesCurrent[i] != (int*)-1) {
+            deleteActor(textObjectInstancesCurrent[i]);
+            textObjectInstancesCurrent[i] = 0;
+        }
+    }
 }
 
 void setInitialPrintingAddr() {
@@ -147,15 +150,14 @@ void mainCFunc() {
 
     if (p1PressedButtons & 0x0800 && p1HeldButtons & 0x0020) { //hold L and press dpad up
         menuFlag = !menuFlag;
+        if (menuFlag == 1) { //spawn menu
+            initHeader(printStartAddr);
+            initTable(printStartAddr);
+        } else { //destroy menu
+            destroyTextObjects();
+        }
     }
-
-    copyCurrentTextActorsToPrevious();
-    destroyPreviousActors();
-    clearCurrentTextActors();
-
-    if (menuFlag == 1) {
-        printHeader(printStartAddr);
-        createCurrentActors(printStartAddr);
-    }
+    updateHeader(printStartAddr);
+    updateTable(printStartAddr);
     setFlags();
 }
