@@ -16,29 +16,24 @@
 #define menuStateSelectAddr 00000001 //for selecting a ram address to modify in the table
 #define menuStatePokeAddr 00000002 //for changing a ram value
 
-char testString[] = "TEST";
-char testString2[] = "%s 10";
-char testString3[] = "TEST AGAIN";
-char formatter08[] = "%02X: %08X %08X %08X %08X";
-char formatter04[] = "%04X %04X %04X %04X %04X %04X %04X %04X ";
-char formatter02[] = "%02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X ";
+char formatter08[] = "%02X:%08X %08X %08X %08X";
+char formatter04[] = "%02X:%04X %04X %04X %04X %04X %04X %04X %04X";
+char formatter02[] = "%02X:%02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X";
 char formatterHeader[] = "ADDR: %08X";
 
-char header[40];
-char line1[40];
-char line2[40];
-char line3[40];
-char line4[40];
-char line5[40];
-char line6[40];
-char line7[40];
-char line8[40];
-char line9[40];
+char header[20];
+char line1[0];
+char line2[0];
+char line3[0];
+char line4[0];
+char line5[0];
+char line6[0];
+char line7[0];
+char line8[0];
+char line9[0];
+char* greenText;
 
-char* lines[] = {header, line1, line2, line3, line4, line5, line6, line7, line8, line9};
-
-char tempHeaderSpace[0x20];
-char tempSpace[40];
+char* lines[] = {header, line1, line2, line3, line4, line5, line6, line7, line8};
 
 void setFlags() {
     setFlag(0x17A, 1, 0);
@@ -60,31 +55,30 @@ void setFlags() {
     setFlag(0x163, 0x01, 0);
 }
 
-TextOverlay* SpawnTextOverlayWrapper(int z, int y, int x, char* string) {
-    SpawnTextOverlay(z, y, x, string);
+TextOverlay* SpawnTextOverlayWrapper(int style, int x, int y, char* string, int timer1, int timer2, unsigned char effect, unsigned char speed) {
+    SpawnTextOverlay(style, x, y, string, timer1, timer2, effect, speed);
     return latestObject;
 }
 
-/*
+
 void dk_sprintfWrapper (char* destination, int byteFormat, int* address) {
     if (byteFormat == ByteFormat4) {
-        dk_sprintf(destination, formatter08, *(address), *(address + 1), *(address + 2), *(address + 3));
+        dk_sprintf(destination, formatter08, ((unsigned int)address & 0x000000FF), *(address), *(address + 1), *(address + 2), *(address + 3));
     } else if (byteFormat == ByteFormat2) {
-        dk_sprintf(destination, formatter04, *(address), *(address + 1), *(address + 2), *(address + 3), *(address + 4), *(address + 5), *(address + 6), *(address + 7));
+        dk_sprintf(destination, formatter04, ((unsigned int)address & 0x000000FF), *((unsigned short*)address), *((unsigned short*)address + 1), *((unsigned short*)address + 2), *((unsigned short*)address + 3), *((unsigned short*)address + 4), *((unsigned short*)address + 5), *((unsigned short*)address + 6), *((unsigned short*)address + 7));
     } else if (byteFormat == ByteFormat1) {
-        dk_sprintf(destination, formatter02, *(address), *(address + 1), *(address + 2), *(address + 3), *(address + 4), *(address + 5), *(address + 6), *(address + 7), *(address + 8), *(address + 9), *(address + 10), *(address + 11), *(address + 12), *(address + 13), *(address + 14), *(address + 15));
+        dk_sprintf(destination, formatter02, ((unsigned int)address & 0x000000FF), *((unsigned char*)address), *((unsigned char*)address + 1), *((unsigned char*)address + 2), *((unsigned char*)address + 3), *((unsigned char*)address + 4), *((unsigned char*)address + 5), *((unsigned char*)address + 6), *((unsigned char*)address + 7), *((unsigned char*)address + 8), *((unsigned char*)address + 9), *((unsigned char*)address + 10), *((unsigned char*)address + 11), *((unsigned char*)address + 12), *((unsigned char*)address + 13), *((unsigned char*)address + 14), *((unsigned char*)address + 15));
     } else {//unknown byte format, default to %08X
-        dk_sprintf(destination, formatter08, *(address), *(address + 1), *(address + 2), *(address + 3));
+        dk_sprintf(destination, formatter08, ((unsigned int)address & 0x000000FF), *(address), *(address + 1), *(address + 2), *(address + 3));
     }
 }
-*/
+
 
 void initHeader (int* address) {
     TextOverlay* textOverlay;
 
     dk_sprintf(header, formatterHeader, address);
-    textOverlay = SpawnTextOverlayWrapper(10, 25, 20, header);
-    //textOverlay->string now holds a pointer to TempHeaderSpace
+    textOverlay = SpawnTextOverlayWrapper(headerStyle, 25, 20, header, 0, 0, 2, 0);
     textOverlay->string = lines[0];
     textObjectInstancesCurrent[0] = (int*)textOverlay;
     setActorOpacity(0xff, textOverlay);
@@ -96,24 +90,25 @@ void updateHeader (int* address) {
 
 void initTable (int* address) {
     TextOverlay* textOverlay;
-    int x = 40;
-    int y = 15;
-    int z = 10;
+    int x = 10;
+    int y = 40;
 
     for (int i = 0; i < 8; i++) {
-        dk_sprintf((lines[i+1]), formatter08, ( (int)(address + i * 4) & 0x000000FF), *(address + i * 4), *(address + (i * 4 + 1)), *(address + (i * 4 + 2)), *(address + (i * 4 + 3)));
-        textOverlay = SpawnTextOverlayWrapper(z, y, x, (lines[i+1]));
+        dk_sprintfWrapper((lines[i+1]), currentFormat, (address + (i * 4)));
+        textOverlay = SpawnTextOverlayWrapper(tableStyle, x, y, (lines[i+1]), 0, 0, 2, 0);
         textOverlay->string = lines[i+1];
         textObjectInstancesCurrent[i+1] = (int*)textOverlay;
         setActorOpacity(0xff, textOverlay);
-        x += 15;
+        y += 15;
     }
 }
 
 void updateTable (int* address) {
     for (int i = 0; i < 8; i++) { //max of 8 lines
-        dk_sprintf((lines[i+1]), formatter08, ( (int)(address + i * 4) & 0x000000FF), *(address + i * 4), *(address + (i * 4 + 1)), *(address + (i * 4 + 2)), *(address + (i * 4 + 3))); 
-        //we do i+1 on lines because *lines[0] is header text
+        if (lines[i+1] != 0) {
+            dk_sprintfWrapper((lines[i+1]), currentFormat, (address + (i * 4)));
+            //we do i+1 on lines because *lines[0] is header text
+        }
     }
 }
 
@@ -130,34 +125,75 @@ void setInitialPrintingAddr() {
     printStartAddr = (int*)0x80000000;
 }
 
-void mainCFunc() {
+void getLinePointers() {
+    for (int i = 0; i < (sizeof(lines) / sizeof(char*)) - 1; i++) {//(sizeof(lines) / sizeof(char*)) - 1 because lines[0] is header
+        lines[i+1] = malloc(0x44); //i+1 because lines[0] is header
+    }
+}
+
+void freeLinePointers() {
+    for (int i = 0; i < (sizeof(lines) / sizeof(char*)) - 1; i++) {//(sizeof(lines) / sizeof(char*)) - 1 because lines[0] is header
+        if (lines[i+1] != 0 && lines[i+1] != (char*)-1) {
+            free(lines[i+1]); //i+1 because lines[0] is header
+            lines[i+1] = 0;
+        }
+    }
+}
+
+void scrollRAMViewer(void) {
     if (p1PressedButtons & dpadUp) {
         if ( (unsigned int)(printStartAddr - 4) < (unsigned int) validRamReadStart) {
-            //dont change address, out of normal RDRAM range
+            //prevents reading from invalid memory
         } else {
             printStartAddr -= 0x4;
         }
     }
 
     if (p1PressedButtons & dpadDown) {
-        if ( (unsigned int) (printStartAddr + 4) >= (unsigned int) validRamReadEnd) { //we display 0x10 bytes * 8 therefore we stop advancing at 807FFF90 to -
-            //prevent reading from invalid memory
-            //dont change address, out of normal RDRAM range
+        if ( (unsigned int) (printStartAddr + 4) >= (unsigned int) validRamReadEnd) { //we display 0x10 bytes * 8 therefore we stop advancing at 807FFF90
+            //prevents reading from invalid memory
         } else {
             printStartAddr += 0x4;
         }
     }
+}
 
+void checkForFormatChange() {
+    if (p1PressedButtons & dpadRight && p1HeldButtons & 0x0020) {
+        if ( (currentFormat + 1) < 3) {
+            currentFormat++;
+        }
+    }
+    if (p1PressedButtons & dpadLeft && p1HeldButtons & 0x0020) {
+        if ( currentFormat != 0) {
+            currentFormat--;
+        }
+    }
+}
+
+void openOrCloseMenuCheck() {
     if (p1PressedButtons & 0x0800 && p1HeldButtons & 0x0020) { //hold L and press dpad up
         menuFlag = !menuFlag;
         if (menuFlag == 1) { //spawn menu
+            headerStyle = 10;
+            tableStyle = 5;
+            getLinePointers();
             initHeader(printStartAddr);
             initTable(printStartAddr);
         } else { //destroy menu
             destroyTextObjects();
+            freeLinePointers();
         }
     }
-    updateHeader(printStartAddr);
-    updateTable(printStartAddr);
+}
+
+void mainCFunc() {
+    openOrCloseMenuCheck();
+    if (menuFlag == 1) {
+        checkForFormatChange();
+        scrollRAMViewer();
+        updateHeader(printStartAddr);
+        updateTable(printStartAddr);
+    }
     setFlags();
 }
