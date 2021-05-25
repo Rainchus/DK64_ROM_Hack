@@ -16,6 +16,8 @@
 .definelabel SpawnTextOverlay, 0x8069D0F8 // a0 = style?, a1 = x (s16), a2 = y (s16), a3 = textpointer
 .definelabel deleteActor, 0x806785D4
 //.definelabel printTextCutscene, 0x806FBD5C
+//8002FE50 increment current menu selection on main menu, 8049210F is ram addr of current menu
+//step loop file menu? 80030340
 
 
 //data

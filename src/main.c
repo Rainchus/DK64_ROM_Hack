@@ -187,11 +187,31 @@ void openOrCloseMenuCheck() {
     }
 }
 
+void pickRAMAddr() {
+    if (p1PressedButtons & dpadUp) {
+        if ( (unsigned int)(printStartAddr - 4) < (unsigned int) validRamReadStart) {
+            //prevents reading from invalid memory
+        } else {
+            printStartAddr -= 0x4;
+        }
+    }
+
+    if (p1PressedButtons & dpadDown) {
+        if ( (unsigned int) (printStartAddr + 4) >= (unsigned int) validRamReadEnd) { //we display 0x10 bytes * 8 therefore we stop advancing at 807FFF90
+            //prevents reading from invalid memory
+        } else {
+            printStartAddr += 0x4;
+        }
+    }    
+
+}
+
 void mainCFunc() {
     openOrCloseMenuCheck();
     if (menuFlag == 1) {
         checkForFormatChange();
         scrollRAMViewer();
+        //pickRAMAddr();
         updateHeader(printStartAddr);
         updateTable(printStartAddr);
     }
