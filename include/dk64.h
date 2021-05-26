@@ -33,6 +33,7 @@ extern short p1HeldButtons; //0x807ECD58
 extern int* textObjectInstancesPrevious[24]; //0x807FFF00
 extern TextOverlay* textObjectInstancesCurrent[24]; //0x807FFF80
 extern int* graphicalOverlaySpace[32][3]; //0x807FFD80
+extern char warpsSubMenu; //0x807FFD6E
 extern char currentMenu; //0x807FFD6F
 extern char inputTimer; //0x807FFD70
 extern char mainMenuBoolean; //0x807FFD71

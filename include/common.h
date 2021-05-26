@@ -1,6 +1,11 @@
 #ifndef _COMMON_H_
 #define _COMMON_H_
 
+#include "common_structs.h"
+#include "dk64.h"
+#include "enums.h"
+#include "global.h"
+
 #define NULL 0
 
 #define dpadUp 0x0800
@@ -9,10 +14,5 @@
 #define dpadRight 0x0100
 #define L_Button 0x0020
 #define R_Button 0x0010
-
-
-#include "common_structs.h"
-#include "dk64.h"
-#include "enums.h"
 
 #endif

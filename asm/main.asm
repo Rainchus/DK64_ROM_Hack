@@ -4,6 +4,7 @@
 .include "asm/boot.asm" //include modified boot code
 .headersize ( 0x805DAE00 - ( (END - START) + bootStart) )
 .org 0x805DAE00
+.importobj "global.o"
 .importobj "main.o" // Import and link the compiled C object
 .importobj "warp.o" // Import and link the compiled C object
 .importobj "ramview.o"
