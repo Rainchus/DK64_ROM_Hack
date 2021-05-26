@@ -1,39 +1,50 @@
 #include "../include/common.h"
 
-#define ByteFormat4 0
-#define ByteFormat2 1
-#define ByteFormat1 2
+#define maxWarpLines 10
 
-#define dpadUp 0x0800
-#define dpadDown 0x0400
-#define dpadLeft 0x0200
-#define dpadRight 0x0100
+char returnLine[] = "RETURN";
+char warps[] = "WARPS";
+char cheats[] = "CHEATS";
+char player[] = "PLAYER";
+char file[] = "FILE";
+char practice[] = "PRACTICE";
+char debug[] = "DEBUG";
+char settings[] = "SETTINGS";
 
-#define validRamReadStart 0x80000000
-#define validRamReadEnd 0x807FFF90
+char warp_Japes[0x18] = "JUNGLE JAPES";
 
-#define menuStateChangeStartAddr 00000000
-#define menuStateSelectAddr 00000001 //for selecting a ram address to modify in the table
-#define menuStatePokeAddr 00000002 //for changing a ram value
+char warp_Aztec[0x18] = "ANGRY AZTEC";
+char warp_Factory[0x18] = "FRANTIC FACTORY";
 
-char formatter08[] = "%02X:%08X %08X %08X %08X";
-char formatter04[] = "%02X:%04X %04X %04X %04X %04X %04X %04X %04X";
-char formatter02[] = "%02X:%02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X %02X";
-char formatterHeader[] = "ADDR: %08X";
+char warp_Galleon[0x18] = "GLOOMY GALLEON";
+char warp_FungiForest[0x18] = "FUNGI FOREST";
+char warp_creepyCastle[0x18] = "CREEPY CASTLE";
+char warp_blank[0x18] = { 0 };
 
-char header[20];
-char line1[0];
-char line2[0];
-char line3[0];
-char line4[0];
-char line5[0];
-char line6[0];
-char line7[0];
-char line8[0];
-char line9[0];
-char* greenText;
+char warpsSubMenu = 0;
+char warpsSubMenuIndex = 0;
+int warpPageIndex = 0;
 
-char* lines[] = {header, line1, line2, line3, line4, line5, line6, line7, line8};
+char* mainMenuLines[] = { returnLine, warps, cheats, player, file, practice, debug, settings, NULL };
+char* warpPage0[] = { warp_Japes, warp_Aztec, warp_Factory, warp_Galleon, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
+char* warpPage1[] = { warp_Galleon, warp_FungiForest, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
+char** warpMenuPages[] = { warpPage0, warpPage1};
+
+//initializeTransition(0x07, 0x0F);
+const short japesWarpID = 0x070F;
+const short aztecWarpID = 0x2600;
+const short factoryWarpID = 0x1A00;
+//
+const short galleonWarpID = 0x1E00;
+const short fungiForestWarpID = 0x301B;
+const short creepyCastleWarpID = 0x5700;
+
+short warpsPage0Values[] = { japesWarpID, aztecWarpID, factoryWarpID, galleonWarpID, NULL};
+short warpsPage1Values[] = { galleonWarpID, fungiForestWarpID, creepyCastleWarpID, NULL};
+
+short* warpArrays[] = { warpsPage0Values, warpsPage1Values};
+
+
 
 void setFlags() {
     setFlag(0x17A, 1, 0);
@@ -55,165 +66,232 @@ void setFlags() {
     setFlag(0x163, 0x01, 0);
 }
 
-TextOverlay* SpawnTextOverlayWrapper(int style, int x, int y, char* string, int timer1, int timer2, unsigned char effect, unsigned char speed) {
-    SpawnTextOverlay(style, x, y, string, timer1, timer2, effect, speed);
-    return latestObject;
-}
-
-
-void dk_sprintfWrapper (char* destination, int byteFormat, int* address) {
-    if (byteFormat == ByteFormat4) {
-        dk_sprintf(destination, formatter08, ((unsigned int)address & 0x000000FF), *(address), *(address + 1), *(address + 2), *(address + 3));
-    } else if (byteFormat == ByteFormat2) {
-        dk_sprintf(destination, formatter04, ((unsigned int)address & 0x000000FF), *((unsigned short*)address), *((unsigned short*)address + 1), *((unsigned short*)address + 2), *((unsigned short*)address + 3), *((unsigned short*)address + 4), *((unsigned short*)address + 5), *((unsigned short*)address + 6), *((unsigned short*)address + 7));
-    } else if (byteFormat == ByteFormat1) {
-        dk_sprintf(destination, formatter02, ((unsigned int)address & 0x000000FF), *((unsigned char*)address), *((unsigned char*)address + 1), *((unsigned char*)address + 2), *((unsigned char*)address + 3), *((unsigned char*)address + 4), *((unsigned char*)address + 5), *((unsigned char*)address + 6), *((unsigned char*)address + 7), *((unsigned char*)address + 8), *((unsigned char*)address + 9), *((unsigned char*)address + 10), *((unsigned char*)address + 11), *((unsigned char*)address + 12), *((unsigned char*)address + 13), *((unsigned char*)address + 14), *((unsigned char*)address + 15));
-    } else {//unknown byte format, default to %08X
-        dk_sprintf(destination, formatter08, ((unsigned int)address & 0x000000FF), *(address), *(address + 1), *(address + 2), *(address + 3));
+void destroyAllTextMenus(void) {
+    for (int i = 0; i < sizeof(textObjectInstancesCurrent) / sizeof(int*); i++) {
+        if (textObjectInstancesCurrent[i] != NULL && textObjectInstancesCurrent[i] != (TextOverlay*)-1) {
+            deleteActor(textObjectInstancesCurrent[i]);
+            textObjectInstancesCurrent[i] = NULL;
+        }
     }
 }
 
-
-void initHeader (int* address) {
-    TextOverlay* textOverlay;
-
-    dk_sprintf(header, formatterHeader, address);
-    textOverlay = SpawnTextOverlayWrapper(headerStyle, 25, 20, header, 0, 0, 2, 0);
-    textOverlay->string = lines[0];
-    textObjectInstancesCurrent[0] = (int*)textOverlay;
-    setActorOpacity(0xff, textOverlay);
-}
-
-void updateHeader (int* address) {
-    dk_sprintf(header, formatterHeader, address);
-}
-
-void initTable (int* address) {
+void initMainMenu(void) {
     TextOverlay* textOverlay;
     int x = 10;
     int y = 40;
+    int style = 10;
 
-    for (int i = 0; i < 8; i++) {
-        dk_sprintfWrapper((lines[i+1]), currentFormat, (address + (i * 4)));
-        textOverlay = SpawnTextOverlayWrapper(tableStyle, x, y, (lines[i+1]), 0, 0, 2, 0);
-        textOverlay->string = lines[i+1];
-        textObjectInstancesCurrent[i+1] = (int*)textOverlay;
+    for (int i = 0; i < (sizeof(mainMenuLines) / sizeof(char*)) - 1; i++) { //-1 because last one is NULL
+        SpawnTextOverlay(style, x, y, (mainMenuLines[i]), 0, 0, 2, 0);
+        textOverlay = latestObject;
+        textObjectInstancesCurrent[i] = textOverlay;
         setActorOpacity(0xff, textOverlay);
         y += 15;
     }
 }
 
-void updateTable (int* address) {
-    for (int i = 0; i < 8; i++) { //max of 8 lines
-        if (lines[i+1] != 0) {
-            dk_sprintfWrapper((lines[i+1]), currentFormat, (address + (i * 4)));
-            //we do i+1 on lines because *lines[0] is header text
-        }
-    }
-}
+void initWarpMenu(void) {
+    TextOverlay* textOverlay;
+    int x = 10;
+    int y = 40;
+    int style = 10;
 
-void destroyTextObjects(void) {
-    for (int i = 0; i < sizeof(textObjectInstancesCurrent) / sizeof(int*); i++) {
-        if (textObjectInstancesCurrent[i] != 0 && textObjectInstancesCurrent[i] != (int*)-1) {
-            deleteActor(textObjectInstancesCurrent[i]);
-            textObjectInstancesCurrent[i] = 0;
-        }
-    }
-}
-
-void setInitialPrintingAddr() {
-    printStartAddr = (int*)0x80000000;
-}
-
-void getLinePointers() {
-    for (int i = 0; i < (sizeof(lines) / sizeof(char*)) - 1; i++) {//(sizeof(lines) / sizeof(char*)) - 1 because lines[0] is header
-        lines[i+1] = malloc(0x44); //i+1 because lines[0] is header
-    }
-}
-
-void freeLinePointers() {
-    for (int i = 0; i < (sizeof(lines) / sizeof(char*)) - 1; i++) {//(sizeof(lines) / sizeof(char*)) - 1 because lines[0] is header
-        if (lines[i+1] != 0 && lines[i+1] != (char*)-1) {
-            free(lines[i+1]); //i+1 because lines[0] is header
-            lines[i+1] = 0;
-        }
-    }
-}
-
-void scrollRAMViewer(void) {
-    if (p1PressedButtons & dpadUp) {
-        if ( (unsigned int)(printStartAddr - 4) < (unsigned int) validRamReadStart) {
-            //prevents reading from invalid memory
+    //set warp page index to 0 to simplify things
+    //get array size
+    for (int i = 0; i < maxWarpLines; i++) {
+        if (( *((warpMenuPages[warpPageIndex])+ i)) != 0) {
+            SpawnTextOverlay(style, x, y, ( *((warpMenuPages[warpPageIndex])+ i)), 0, 0, 2, 0);
         } else {
-            printStartAddr -= 0x4;
+            SpawnTextOverlay(style, x, y, warp_blank, 0, 0, 2, 0);
+            //does equal 0, create blank
         }
+        textOverlay = latestObject;
+        textObjectInstancesCurrent[i] = textOverlay;
+        setActorOpacity(0xff, textOverlay);
+        y += 15;
     }
+}
 
-    if (p1PressedButtons & dpadDown) {
-        if ( (unsigned int) (printStartAddr + 4) >= (unsigned int) validRamReadEnd) { //we display 0x10 bytes * 8 therefore we stop advancing at 807FFF90
-            //prevents reading from invalid memory
-        } else {
-            printStartAddr += 0x4;
+void colorCurrentSelection(int lineCount, int colorIndex) {
+    for (int i = 0; i < lineCount - 1; i++) { //-1 because last one is NULL
+        if (textObjectInstancesCurrent[i] != NULL) {
+            if (i == colorIndex) {
+                setOverlayColor( (TextOverlay*) textObjectInstancesCurrent[i], 0, 0xFF, 00); //green
+            } else {
+                setOverlayColor( (TextOverlay*) textObjectInstancesCurrent[i], 0xFF, 0xFF, 0xFF); //white
+            }
         }
     }
 }
 
-void checkForFormatChange() {
-    if (p1PressedButtons & dpadRight && p1HeldButtons & 0x0020) {
-        if ( (currentFormat + 1) < 3) {
-            currentFormat++;
+void openOrCloseMainMenuCheck(void) {
+    if (p1HeldButtons & L_Button && p1PressedButtons & dpadUp) { //hold L, double tap dpad up to open menu
+        if (warpsSubMenu == 0) {
+            if (inputTimer == 0) { //start timer
+                inputTimer = 7;
+            } else {
+                mainMenuBoolean = !mainMenuBoolean;
+                inputTimer = 0;
+                if (mainMenuBoolean == 1) { //spawn menu
+                    initMainMenu();
+                } else { //destroy menu
+                    destroyAllTextMenus();
+                }
+            }
         }
     }
-    if (p1PressedButtons & dpadLeft && p1HeldButtons & 0x0020) {
-        if ( currentFormat != 0) {
-            currentFormat--;
+    if (inputTimer != 0) {
+        inputTimer--;
+    }
+}
+
+int scrollMenu(int cursorValue, int sizeOfMenu) {
+    if ( (p1PressedButtons & L_Button) == 0 && (p1HeldButtons & L_Button) == 0) {
+        if (p1PressedButtons & dpadUp) {
+            if (cursorValue != 0) {
+                cursorValue--;
+            } else {
+                cursorValue = sizeOfMenu;
+            }
+        }
+        if (p1PressedButtons & dpadDown) {
+            if (cursorValue < sizeOfMenu){
+                cursorValue++;
+            } else {
+                cursorValue = 0;
+            }
+        }
+    }
+    return cursorValue;
+}
+
+int selectOptionMainMenu(void) {
+    if (p1PressedButtons & dpadRight && p1HeldButtons & L_Button) { //hold L and press dpadRight
+            mainMenuBoolean = 0;
+            destroyAllTextMenus();
+        switch (mainCursorIndex) {
+            case 0: //return
+                return 0;
+            case 1: //warps
+                initWarpMenu();
+                warpsSubMenu = 1;
+                return 1;
+        }
+    }
+    return -1;
+}
+
+void checkWarpMenuInput(void) {
+    if (p1HeldButtons & L_Button && p1PressedButtons & dpadLeft) {
+        warpsSubMenu = 0;
+        mainMenuBoolean = 1;
+        destroyAllTextMenus();
+        initMainMenu();
+    }
+}
+
+void checkScrollPage (void) {
+    if (p1PressedButtons & dpadRight && ((p1HeldButtons & L_Button) == 0)){
+        if (warpPageIndex < sizeof(warpArrays) / sizeof(short*) -1) {
+            warpPageIndex++;
+        } else {
+            warpPageIndex = 0;
+        }
+    }
+    if (p1PressedButtons & dpadLeft && ((p1HeldButtons & L_Button) == 0)){
+        if (warpPageIndex != 0) {
+            warpPageIndex--;
+        } else {
+            warpPageIndex = (sizeof(warpMenuPages) / sizeof(char**)) -1;
         }
     }
 }
 
-void openOrCloseMenuCheck() {
-    if (p1PressedButtons & 0x0800 && p1HeldButtons & 0x0020) { //hold L and press dpad up
-        menuFlag = !menuFlag;
-        if (menuFlag == 1) { //spawn menu
-            headerStyle = 10;
-            tableStyle = 5;
-            getLinePointers();
-            initHeader(printStartAddr);
-            initTable(printStartAddr);
-        } else { //destroy menu
-            destroyTextObjects();
-            freeLinePointers();
+void updateWarpMenuStrings(void) {
+    for (int i = 0; i < maxWarpLines; i++) {
+        if (textObjectInstancesCurrent[i] != 0) {
+            if (textObjectInstancesCurrent[i]->string != 0) {
+                if ( (*((warpMenuPages[warpPageIndex])+ i)) != NULL) {
+                    textObjectInstancesCurrent[i]->string = (*((warpMenuPages[warpPageIndex])+ i));
+                } else {
+                    textObjectInstancesCurrent[i]->string = warp_blank;
+                }
+            }
         }
     }
 }
 
-void pickRAMAddr() {
-    if (p1PressedButtons & dpadUp) {
-        if ( (unsigned int)(printStartAddr - 4) < (unsigned int) validRamReadStart) {
-            //prevents reading from invalid memory
-        } else {
-            printStartAddr -= 0x4;
+void updateWarpMenu(void) {
+    //initializeTransition(0x07, 0x0F);
+    checkScrollPage();
+    //updateWarpMenuStrings();
+    colorCurrentSelection( (sizeof(warpPage0) / sizeof(char*)), warpsSubMenuIndex);
+    checkWarpMenuInput();
+    updateWarpMenuStrings();
+    int i;
+    //get array size
+    if (mainMenuBoolean == 1) {
+        goto updateWarpMenuExit;
+    } else {
+        for (i = 0; i < maxWarpLines; i++) {
+            if (*(textObjectInstancesCurrent[i]->string) == 0) {
+                //points to null string
+                i--;
+                break;
+            }
         }
     }
-
-    if (p1PressedButtons & dpadDown) {
-        if ( (unsigned int) (printStartAddr + 4) >= (unsigned int) validRamReadEnd) { //we display 0x10 bytes * 8 therefore we stop advancing at 807FFF90
-            //prevents reading from invalid memory
+        //(warpMenuPages[warpsPage])
+    warpsSubMenuIndex = scrollMenu(warpsSubMenuIndex, i);
+    if (p1PressedButtons & L_Button) { //double tap L to warp
+        if (inputTimer == 0) { //start timer
+            inputTimer = 7;
         } else {
-            printStartAddr += 0x4;
+            //warp
+            inputTimer = 0;
+            short* arg0 = warpArrays[warpPageIndex];
+            short arg0_1 = (*(arg0 + warpsSubMenuIndex)) >> 8; //shift upper byte of s16 to lower byte
+            short arg1_1 = (*(arg0 + warpsSubMenuIndex)) & 0xFF;
+            initializeTransition(arg0_1, arg1_1); //warp
+            warpsSubMenu = 0;
+            destroyAllTextMenus();
         }
-    }    
+    }
+    updateWarpMenuExit:
+    i = 0;
+}
 
+void handleOption(int optionSelected) {
+    switch (currentMenu) {
+        case 0: //nothing
+            break;
+        case 1: //
+            updateWarpMenu();
+            break;
+    }
+}
+
+void menuMain(void) {
+    openOrCloseMainMenuCheck();
+    if (mainMenuBoolean == 1) {
+        colorCurrentSelection( (sizeof(mainMenuLines) / sizeof(char*)), mainCursorIndex);
+        mainCursorIndex = scrollMenu(mainCursorIndex, sizeof(mainMenuLines) / sizeof(char*) -2);
+        currentMenu = selectOptionMainMenu();
+    } else {
+        switch (mainCursorIndex) {
+            case 0:
+                break;
+            case 1:
+                if (warpsSubMenu == 1) {
+                    updateWarpMenu();
+                }
+                break;
+        }
+    }
 }
 
 void mainCFunc() {
-    openOrCloseMenuCheck();
-    if (menuFlag == 1) {
-        checkForFormatChange();
-        scrollRAMViewer();
-        //pickRAMAddr();
-        updateHeader(printStartAddr);
-        updateTable(printStartAddr);
-    }
+    menuMain();
+    //ramViewMain();
     setFlags();
 }

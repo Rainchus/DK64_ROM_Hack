@@ -13,6 +13,7 @@
 .definelabel spawnActor, 0x80677FA8
 .definelabel dk_strlen, 0x80002F18
 .definelabel dk_sprintf, 0x800031E0
+.definelabel initializeTransition, 0x805FF378
 .definelabel SpawnTextOverlay, 0x8069D0F8 // a0 = style?, a1 = x (s16), a2 = y (s16), a3 = textpointer
 .definelabel deleteActor, 0x806785D4
 //.definelabel printTextCutscene, 0x806FBD5C
@@ -25,7 +26,11 @@
 .definelabel latestObject, 0x807FBB44
 .definelabel p1PressedButtons, 0x807ECD48
 .definelabel p1HeldButtons, 0x807ECD58
-.definelabel menuFlag, 0x807FFD70
+.definelabel currentMenu, 0x807FFD6F
+.definelabel inputTimer, 0x807FFD70
+.definelabel mainMenuBoolean, 0x807FFD71
+.definelabel mainCursorIndex, 0x807FFD72
+.definelabel menuFlag, 0x807FFD73
 .definelabel printStartAddr, 0x807FFD74
 .definelabel headerStyle, 0x807FFD78
 .definelabel tableStyle, 0x807FFD79

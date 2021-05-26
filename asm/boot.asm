@@ -37,18 +37,15 @@ LUI t0, hi(printStartAddr)
 LUI t1, 0x8000
 SW t1, lo(printStartAddr) (t0) //set starting printing address to 0x80000000
 LUI t0, hi(menuFlag)
-SW r0, lo(menuFlag) (t0)
+SB r0, lo(menuFlag) (t0)
 LUI t0, hi(skipFirstCutsceneRegardlessOfStorySkip)
 LW t0, lo(skipFirstCutsceneRegardlessOfStorySkip) (t0)
 LUI t1, 0x8071
 SW t0, 0x4520 (t1) //always skip first cutscene no matter what
 LUI t0, hi(currentFormat)
 SB r0, lo(currentFormat) (t0) //set to 0 so menu works (default is FF)
-//JAL 0x80712EDC //set game mode to file select?
-//NOP
-//807124E8 LW	A0, 0x0018 (SP)
-//
 
+/*
 LUI t0, hi(skipRapAndPreview)
 ADDIU t0, t0, lo(skipRapAndPreview)
 LUI t1, 0x8071
@@ -57,6 +54,7 @@ LW t2, 0x0000 (t0)
 SW t2, 0x0000 (t1)
 LW t2, 0x0004 (t0)
 SW t2, 0x0008 (t1) //skip rap and preview on boot
+*/
 //
 LUI t0, hi(menuCodeDMAJump)
 ADDIU t0, t0, lo(menuCodeDMAJump)
@@ -67,16 +65,9 @@ SW t2, 0x0000 (t1)
 LW t2, 0x0004 (t0)
 SW t2, 0x0004 (t1)
 
-/*
-LUI a0, hi(bootStart + (END - START) )
-ADDIU a1, a0, lo(bootStart + (END - START) + 0x10)
-ADDIU a0, a0, lo(bootStart + (END - START) )
-LUI a2, 0x805D //0x805DAE00
-ORI a2, a2, 0xAE00
-JAL dmaCopy
-NOP
-*/
-//
+LUI t0, 0x8073
+SW r0, 0x190C (t0) //hopefully skip opening house
+
 LUI t0, hi(menuFlagOffOnRoomTransition)
 ADDIU t0, t0, lo(menuFlagOffOnRoomTransition)
 LW t1, 0x0000 (t0)
@@ -96,7 +87,7 @@ LUI t6, 0x000D
 
 menuFlagOffOnRoomTransition:
 LUI gp, hi(menuFlag)
-SW r0, lo(menuFlag) (gp)
+SB r0, lo(menuFlag) (gp)
 
 skipFirstCutsceneRegardlessOfStorySkip:
 ORI t6, r0, 0x0001
