@@ -26,6 +26,7 @@
 .definelabel latestObject, 0x807FBB44
 .definelabel p1PressedButtons, 0x807ECD48
 .definelabel p1HeldButtons, 0x807ECD58
+.definelabel cheatsBitField, 0x807FFD6C
 .definelabel warpsSubMenu, 0x807FFD6E
 .definelabel currentMenu, 0x807FFD6F
 .definelabel inputTimer, 0x807FFD70

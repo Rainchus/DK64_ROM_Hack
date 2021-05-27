@@ -43,3 +43,4 @@ extern int* printStartAddr; //custom
 extern unsigned char headerStyle; //custom
 extern unsigned char tableStyle; //custom
 extern unsigned char currentFormat; //custom
+extern unsigned short cheatsBitField;

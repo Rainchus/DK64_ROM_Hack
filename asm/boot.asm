@@ -1,22 +1,3 @@
-.org 0x113F0
-.incbin "bin/0113F0_CompressedModZLib.bin" //sets heap end to 0x805D0000, normally is 0x805F0000
-
-.definelabel bootStart, 0x01FED020
-
-.headersize 0x7FFFF400
-.org 0x80000764
-LUI a0, 0x01FE //start of ROM copy
-ORI a1, a0, ( (END - START) + bootStart & 0xFFFF)
-ORI a0, a0, 0xD020
-LUI a2, 0x807F
-JAL dmaCopy
-ORI a2, a2, 0xF310 //RAM location to copy to
-J displacedBootCode
-NOP
-////////
-
-.headersize 0x7E8122F0
-.org 0x807FF310
 START:
 displacedBootCode: //ballam hook
 LUI v0, 0x8001
@@ -44,18 +25,6 @@ LUI t1, 0x8071
 SW t0, 0x4520 (t1) //always skip first cutscene no matter what
 LUI t0, hi(currentFormat)
 SB r0, lo(currentFormat) (t0) //set to 0 so menu works (default is FF)
-
-/*
-LUI t0, hi(skipRapAndPreview)
-ADDIU t0, t0, lo(skipRapAndPreview)
-LUI t1, 0x8071
-ORI t1, t1, 0x24E8
-LW t2, 0x0000 (t0)
-SW t2, 0x0000 (t1)
-LW t2, 0x0004 (t0)
-SW t2, 0x0008 (t1) //skip rap and preview on boot
-*/
-//
 LUI t0, hi(menuCodeDMAJump)
 ADDIU t0, t0, lo(menuCodeDMAJump)
 LUI t1, 0x8071

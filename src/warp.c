@@ -21,7 +21,6 @@ char* warpPage1[] = { warp_Galleon, warp_FungiForest, NULL, NULL, NULL, NULL, NU
 char* warpPage2[] = { warp_Japes, warp_Factory, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
 char** warpMenuPages[] = { warpPage0, warpPage1, warpPage2};
 
-//initializeTransition(0x07, 0x0F);
 const short japesWarpID = 0x070F;
 const short aztecWarpID = 0x2600;
 const short factoryWarpID = 0x1A00;
@@ -30,9 +29,9 @@ const short galleonWarpID = 0x1E00;
 const short fungiForestWarpID = 0x301B;
 const short creepyCastleWarpID = 0x5700;
 
-short warpsPage0Values[] = { japesWarpID, aztecWarpID, factoryWarpID, galleonWarpID, NULL};
-short warpsPage1Values[] = { galleonWarpID, fungiForestWarpID, creepyCastleWarpID, NULL};
-short warpsPage2Values[] = { japesWarpID, factoryWarpID, NULL, NULL};
+short warpsPage0Values[] = { japesWarpID, aztecWarpID, factoryWarpID, galleonWarpID, 0};
+short warpsPage1Values[] = { galleonWarpID, fungiForestWarpID, creepyCastleWarpID, 0};
+short warpsPage2Values[] = { japesWarpID, factoryWarpID, 0, 0};
 
 short* warpArrays[] = { warpsPage0Values, warpsPage1Values, warpsPage2Values};
 
