@@ -8,8 +8,8 @@ LUI t4, 0x8074
 SB t3, 0x452C (t4) //set story skip to 1
 //write per frame hook
 //
-LUI t3, hi(mainASMFunctionVanilla)
-LW t3, lo(mainASMFunctionVanilla) (t3)
+LUI t3, hi(mainASMFunctionJump)
+LW t3, lo(mainASMFunctionJump) (t3)
 LUI t4, 0x8060
 SW t3, 0xC164 (t4) //store per frame hook
 JAL patchGraphicOverlaySpace
