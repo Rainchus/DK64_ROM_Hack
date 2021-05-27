@@ -1,5 +1,5 @@
 # Patching
-To patch the ROM, obtain `flips` and apply the bps in `patch/` and patch over a vanilla DK64 US ROM<br />
+To patch the ROM, obtain `flips.exe` and apply the bps patch over a vanilla DK64 US ROM<br />
 <br />
 # Build From Source
 Follow this tutorial to get armips/gcc working first `https://hack64.net/Thread-Importing-C-Code-Into-SM64-Using-n64chain-and-armips`<br />
