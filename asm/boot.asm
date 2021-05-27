@@ -11,7 +11,7 @@ SB t3, 0x452C (t4) //set story skip to 1
 LUI t3, hi(mainASMFunctionVanilla)
 LW t3, lo(mainASMFunctionVanilla) (t3)
 LUI t4, 0x8060
-SW t3, 0xC164 (t4) //remove per frame hook
+SW t3, 0xC164 (t4) //store per frame hook
 JAL patchGraphicOverlaySpace
 NOP
 LUI t0, hi(printStartAddr)
@@ -25,14 +25,6 @@ LUI t1, 0x8071
 SW t0, 0x4520 (t1) //always skip first cutscene no matter what
 LUI t0, hi(currentFormat)
 SB r0, lo(currentFormat) (t0) //set to 0 so menu works (default is FF)
-LUI t0, hi(menuCodeDMAJump)
-ADDIU t0, t0, lo(menuCodeDMAJump)
-LUI t1, 0x8071
-ORI t1, t1, 0x2AC8
-LW t2, 0x0000 (t0)
-SW t2, 0x0000 (t1)
-LW t2, 0x0004 (t0)
-SW t2, 0x0004 (t1)
 
 LUI t0, 0x8073
 SW r0, 0x190C (t0) //hopefully skip opening house
@@ -77,10 +69,6 @@ SB a0, 0x15F (a1) //set opacity
 nullPtr3:
 JR RA
 NOP
-
-skipRapAndPreview:
-ORI a0, r0, 0x0050
-ORI a2, r0, 0x0005
 
 patchGraphicOverlaySpace:
 LUI t0, hi(graphicOverlayInstructionsPatch1)
@@ -164,34 +152,5 @@ mainASMFunctionVanilla:
 JAL	0x805FC2B0
 NOP
 
-menuCodeDMAJump:
-J menuCodeDMA
-NOP
-
-menuCodeDMA:
-//80712AC8
-ORI at, r0, 0006
-BEQ at, t7, dmaCustomCode
-NOP
-menuCodeExit:
-LUI	AT, 0x8075
-SB	R0, 0x5324 (AT)
-J 0x80712AD0
-NOP
-dmaCustomCode:
-LUI a0, hi(bootStart + (END - START) )
-ADDIU a1, a0, lo(bootStart + (END - START) + 0x2000)
-ADDIU a0, a0, lo(bootStart + (END - START) )
-LUI a2, 0x805D //0x805DAE00
-ORI a2, a2, 0xAE00
-JAL dmaCopy
-NOP
-LUI t3, hi(mainASMFunctionJump)
-ADDIU t3, t3, lo(mainASMFunctionJump)
-LW t3, 0x0000 (t3)
-LUI t4, 0x8060
-SW t3, 0xC164 (t4) //store per frame hook
-J menuCodeExit
-NOP
 .align 0x10
 END:
